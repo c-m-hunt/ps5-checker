@@ -1,40 +1,39 @@
 package check
 
 import (
-	"context"
+	"reflect"
 	"strings"
 
 	"github.com/chromedp/chromedp"
-	log "github.com/sirupsen/logrus"
 )
 
 type Smyths struct {
-	inStock  bool
-	Headless bool
+	CheckerInfo
+	Options
 }
 
-func (s *Smyths) GetName() string {
-	return "Smyths"
+func (g *Smyths) GetName() string {
+	t := reflect.TypeOf(g)
+	return t.Elem().Name()
 }
 
 func (s *Smyths) GetInStock() bool {
 	return s.inStock
 }
 
+func (c Smyths) PrintStatus() {
+	c.CheckerInfo.PrintStatus(c.GetName())
+}
+
 func (s *Smyths) CheckStock() error {
 	s.inStock = false
-	log.Info("Checking Smyths")
+	s.checks++
 	url := "https://www.smythstoys.com/uk/en-gb/video-games-and-tablets/playstation-5/playstation-5-consoles/playstation-5-console/p/191259"
 
-	opts := append(chromedp.DefaultExecAllocatorOptions[:],
-		chromedp.Flag("headless", s.Headless),
-	)
-
-	allocCtx, cancel := chromedp.NewExecAllocator(context.Background(), opts...)
-	defer cancel()
-
-	ctx, cancel := chromedp.NewContext(allocCtx)
-	defer cancel()
+	ctx, cancels := SetupBrowserContext(s.Options)
+	for _, c := range cancels {
+		defer c()
+	}
 
 	var stock string
 	err := chromedp.Run(ctx,
@@ -44,6 +43,7 @@ func (s *Smyths) CheckStock() error {
 		chromedp.Text(".resultStock", &stock, chromedp.NodeVisible),
 	)
 	if err != nil {
+		s.errors++
 		return err
 	}
 	if strings.TrimSpace(stock) != "Out Of Stock" {

@@ -1,39 +1,38 @@
 package check
 
 import (
-	"context"
+	"reflect"
 
 	"github.com/chromedp/chromedp"
-	log "github.com/sirupsen/logrus"
 )
 
 type Argos struct {
-	inStock  bool
-	Headless bool
+	CheckerInfo
+	Options
 }
 
-func (a *Argos) GetName() string {
-	return "Argos"
+func (g *Argos) GetName() string {
+	t := reflect.TypeOf(g)
+	return t.Elem().Name()
 }
 
 func (a *Argos) GetInStock() bool {
 	return a.inStock
 }
 
+func (c Argos) PrintStatus() {
+	c.CheckerInfo.PrintStatus(c.GetName())
+}
+
 func (a *Argos) CheckStock() error {
+	a.checks++
 	a.inStock = false
-	log.Info("Checking Argos")
 	urls := []string{"https://www.argos.co.uk/product/8349024", "https://www.argos.co.uk/product/8349000"}
 
-	opts := append(chromedp.DefaultExecAllocatorOptions[:],
-		chromedp.Flag("headless", a.Headless),
-	)
-
-	allocCtx, cancel := chromedp.NewExecAllocator(context.Background(), opts...)
-	defer cancel()
-
-	ctx, cancel := chromedp.NewContext(allocCtx)
-	defer cancel()
+	ctx, cancels := SetupBrowserContext(a.Options)
+	for _, c := range cancels {
+		defer c()
+	}
 
 	outOfStockURL := "https://www.argos.co.uk/vp/oos/ps5.html"
 	for _, u := range urls {
@@ -44,6 +43,7 @@ func (a *Argos) CheckStock() error {
 			chromedp.Location(&navURL),
 		)
 		if err != nil {
+			a.errors++
 			return err
 		}
 		if navURL != outOfStockURL {

@@ -8,17 +8,12 @@ import (
 )
 
 type Game struct {
-	CheckerInfo
-	Options
+	CheckerBase
 }
 
 func (g *Game) GetName() string {
 	t := reflect.TypeOf(g)
 	return t.Elem().Name()
-}
-
-func (g *Game) GetInStock() bool {
-	return g.inStock
 }
 
 func (c Game) PrintStatus() {
@@ -41,12 +36,12 @@ func (g *Game) CheckStock() error {
 		chromedp.Nodes("#contentPanels3 .sectionButton a", &stockButtons, chromedp.NodeVisible),
 	)
 	if err != nil {
-		g.errors++
+		g.Errors++
 		return err
 	}
 	for _, sb := range stockButtons {
 		if sb.Children[0].NodeValue != "Out of stock" {
-			g.CheckerInfo.LogStockSeen()
+			g.CheckerInfo.LogStockSeen(url)
 			return nil
 		}
 	}

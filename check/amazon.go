@@ -8,18 +8,13 @@ import (
 )
 
 type Amazon struct {
-	inStock bool
-	CheckerInfo
-	Options
+	CheckerBase
+	Checker
 }
 
-func (g *Amazon) GetName() string {
-	t := reflect.TypeOf(g)
+func (c *Amazon) GetName() string {
+	t := reflect.TypeOf(c)
 	return t.Elem().Name()
-}
-
-func (a *Amazon) GetInStock() bool {
-	return a.inStock
 }
 
 func (c Amazon) PrintStatus() {
@@ -44,7 +39,7 @@ func (a *Amazon) CheckStock() error {
 		chromedp.Click("#sp-cc-accept", chromedp.NodeVisible),
 	)
 	if err != nil {
-		a.errors++
+		a.Errors++
 		return err
 	}
 	for _, u := range urls {
@@ -53,12 +48,12 @@ func (a *Amazon) CheckStock() error {
 			chromedp.Text("#availability span", &stock),
 		)
 		if err != nil {
-			a.errors++
+			a.Errors++
 			return err
 		}
 
 		if strings.TrimSpace(stock) != "Currently unavailable." {
-			a.CheckerInfo.LogStockSeen()
+			a.CheckerInfo.LogStockSeen(u)
 			return nil
 		}
 	}

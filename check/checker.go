@@ -15,15 +15,30 @@ type Checker interface {
 	CheckStock() error
 	GetInStock() bool
 	PrintStatus()
+	GetCheckInfo() CheckerInfo
+}
+
+type CheckerBase struct {
+	CheckerInfo
+	Options
+}
+
+func (c *CheckerBase) GetInStock() bool {
+	return c.InStock
+}
+
+func (c CheckerBase) GetCheckInfo() CheckerInfo {
+	return c.CheckerInfo
 }
 
 type CheckerInfo struct {
-	inStock       bool
-	checks        int
-	errors        int
-	stockSeen     int
-	lastCheck     *time.Time
-	stockLastSeen *time.Time
+	InStock       bool
+	Checks        int
+	Errors        int
+	StockSeen     int
+	LastCheck     *time.Time
+	StockLastSeen *time.Time
+	StockURL      string
 }
 
 type Options struct {
@@ -53,21 +68,22 @@ func SetupBrowserContext(o Options) (context.Context, []func()) {
 func (c CheckerInfo) PrintStatus(name string) {
 	fmt.Printf("%-10v %8v %8v %8v %-17v %-17v\n", "Name", "Checks", "Errors", "Stock", "Last check", "Stock last seen")
 	lastSeen := ""
-	if c.stockLastSeen != nil {
-		lastSeen = c.stockLastSeen.Format("Jan 2 15:04:05")
+	if c.StockLastSeen != nil {
+		lastSeen = c.StockLastSeen.Format("Jan 2 15:04:05")
 	}
-	fmt.Printf("%-10v %8v %8v %8v %-17v %-17v\n", name, c.checks, c.errors, c.stockSeen, c.lastCheck.Format("Jan 2 15:04:05"), lastSeen)
+	fmt.Printf("%-10v %8v %8v %8v %-17v %-17v\n", name, c.Checks, c.Errors, c.StockSeen, c.LastCheck.Format("Jan 2 15:04:05"), lastSeen)
 }
 
 func (c *CheckerInfo) LogCheck() {
-	c.inStock = false
-	c.checks++
+	c.InStock = false
+	c.Checks++
 	now := time.Now()
-	c.lastCheck = &now
+	c.LastCheck = &now
 }
 
-func (c *CheckerInfo) LogStockSeen() {
-	c.inStock = true
+func (c *CheckerInfo) LogStockSeen(url string) {
+	c.InStock = true
 	now := time.Now()
-	c.stockLastSeen = &now
+	c.StockLastSeen = &now
+	c.StockURL = url
 }

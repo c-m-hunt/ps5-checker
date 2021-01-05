@@ -7,17 +7,12 @@ import (
 )
 
 type Argos struct {
-	CheckerInfo
-	Options
+	CheckerBase
 }
 
 func (g *Argos) GetName() string {
 	t := reflect.TypeOf(g)
 	return t.Elem().Name()
-}
-
-func (a *Argos) GetInStock() bool {
-	return a.inStock
 }
 
 func (c Argos) PrintStatus() {
@@ -42,11 +37,11 @@ func (a *Argos) CheckStock() error {
 			chromedp.Location(&navURL),
 		)
 		if err != nil {
-			a.errors++
+			a.Errors++
 			return err
 		}
 		if navURL != outOfStockURL {
-			a.CheckerInfo.LogStockSeen()
+			a.CheckerInfo.LogStockSeen(u)
 			return nil
 		}
 	}

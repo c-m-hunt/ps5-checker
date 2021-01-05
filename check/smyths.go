@@ -8,17 +8,12 @@ import (
 )
 
 type Smyths struct {
-	CheckerInfo
-	Options
+	CheckerBase
 }
 
-func (g *Smyths) GetName() string {
-	t := reflect.TypeOf(g)
+func (c *Smyths) GetName() string {
+	t := reflect.TypeOf(c)
 	return t.Elem().Name()
-}
-
-func (s *Smyths) GetInStock() bool {
-	return s.inStock
 }
 
 func (c Smyths) PrintStatus() {
@@ -42,11 +37,11 @@ func (s *Smyths) CheckStock() error {
 		chromedp.Text(".resultStock", &stock, chromedp.NodeVisible),
 	)
 	if err != nil {
-		s.errors++
+		s.Errors++
 		return err
 	}
 	if strings.TrimSpace(stock) != "Out Of Stock" {
-		s.CheckerInfo.LogStockSeen()
+		s.CheckerInfo.LogStockSeen(url)
 		return nil
 	}
 

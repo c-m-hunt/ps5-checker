@@ -25,8 +25,7 @@ func (c Argos) PrintStatus() {
 }
 
 func (a *Argos) CheckStock() error {
-	a.checks++
-	a.inStock = false
+	a.CheckerInfo.LogCheck()
 	urls := []string{"https://www.argos.co.uk/product/8349024", "https://www.argos.co.uk/product/8349000"}
 
 	ctx, cancels := SetupBrowserContext(a.Options)
@@ -47,7 +46,7 @@ func (a *Argos) CheckStock() error {
 			return err
 		}
 		if navURL != outOfStockURL {
-			a.inStock = true
+			a.CheckerInfo.LogStockSeen()
 			return nil
 		}
 	}

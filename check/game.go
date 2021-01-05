@@ -26,8 +26,7 @@ func (c Game) PrintStatus() {
 }
 
 func (g *Game) CheckStock() error {
-	g.inStock = false
-	g.checks++
+	g.CheckerInfo.LogCheck()
 	url := "https://www.game.co.uk/playstation-5"
 
 	ctx, cancels := SetupBrowserContext(g.Options)
@@ -47,7 +46,7 @@ func (g *Game) CheckStock() error {
 	}
 	for _, sb := range stockButtons {
 		if sb.Children[0].NodeValue != "Out of stock" {
-			g.inStock = true
+			g.CheckerInfo.LogStockSeen()
 			return nil
 		}
 	}

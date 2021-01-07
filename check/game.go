@@ -1,6 +1,7 @@
 package check
 
 import (
+	"context"
 	"reflect"
 
 	"github.com/chromedp/cdproto/cdp"
@@ -24,12 +25,12 @@ func (g *Game) CheckStock() error {
 	g.CheckerInfo.LogCheck()
 	url := "https://www.game.co.uk/playstation-5"
 
-	ctx, cancels := SetupBrowserContext(g.Options)
+	var ctx context.Context
+	cancels := SetupBrowserContext(g.Options, &ctx)
 	for _, c := range cancels {
 		defer c()
 	}
 
-	//var res string
 	var stockButtons []*cdp.Node
 	err := chromedp.Run(ctx,
 		chromedp.Navigate(url),
@@ -41,7 +42,7 @@ func (g *Game) CheckStock() error {
 	}
 	for _, sb := range stockButtons {
 		if sb.Children[0].NodeValue != "Out of stock" {
-			g.CheckerInfo.LogStockSeen(url)
+			g.CheckerInfo.LogStockSeen(g.GetName(), url, ctx)
 			return nil
 		}
 	}

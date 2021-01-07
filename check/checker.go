@@ -3,8 +3,13 @@ package check
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
+	"log"
+	"math"
 	"time"
 
+	"github.com/chromedp/cdproto/emulation"
+	"github.com/chromedp/cdproto/page"
 	"github.com/chromedp/chromedp"
 )
 
@@ -51,18 +56,19 @@ func NewOptions() Options {
 	}
 }
 
-func SetupBrowserContext(o Options) (context.Context, []func()) {
+func SetupBrowserContext(o Options, ctx *context.Context) []func() {
 	opts := append(chromedp.DefaultExecAllocatorOptions[:],
 		chromedp.Flag("headless", o.Headless),
 	)
-
+	cancels := []func(){}
 	ctxTimeout, cancel0 := context.WithTimeout(context.Background(), 20*time.Second)
-
+	cancels = append(cancels, cancel0)
 	allocCtx, cancel1 := chromedp.NewExecAllocator(ctxTimeout, opts...)
-
-	ctx, cancel2 := chromedp.NewContext(allocCtx)
-
-	return ctx, []func(){cancel0, cancel1, cancel2}
+	cancels = append(cancels, cancel1)
+	ctxNew, cancel2 := chromedp.NewContext(allocCtx)
+	cancels = append(cancels, cancel2)
+	*ctx = ctxNew
+	return cancels
 }
 
 func (c CheckerInfo) PrintStatus(name string) {
@@ -81,9 +87,54 @@ func (c *CheckerInfo) LogCheck() {
 	c.LastCheck = &now
 }
 
-func (c *CheckerInfo) LogStockSeen(url string) {
+func (c *CheckerInfo) LogStockSeen(name string, url string, ctx context.Context) {
+	var buf []byte
+	chromedp.Run(ctx,
+		fullScreenshot(80, &buf),
+	)
+	if err := ioutil.WriteFile(fmt.Sprintf("./screens/%v_ss.png", name), buf, 0o644); err != nil {
+		log.Fatal(err)
+	}
 	c.InStock = true
 	now := time.Now()
 	c.StockLastSeen = &now
 	c.StockURL = url
+}
+
+func fullScreenshot(quality int64, res *[]byte) chromedp.Tasks {
+	return chromedp.Tasks{
+		chromedp.ActionFunc(func(ctx context.Context) error {
+			_, _, contentSize, err := page.GetLayoutMetrics().Do(ctx)
+			if err != nil {
+				return err
+			}
+
+			width, height := int64(math.Ceil(contentSize.Width)), int64(math.Ceil(contentSize.Height))
+
+			err = emulation.SetDeviceMetricsOverride(width, height, 1, false).
+				WithScreenOrientation(&emulation.ScreenOrientation{
+					Type:  emulation.OrientationTypePortraitPrimary,
+					Angle: 0,
+				}).
+				Do(ctx)
+			if err != nil {
+				return err
+			}
+
+			// capture screenshot
+			*res, err = page.CaptureScreenshot().
+				WithQuality(quality).
+				WithClip(&page.Viewport{
+					X:      contentSize.X,
+					Y:      contentSize.Y,
+					Width:  contentSize.Width,
+					Height: contentSize.Height,
+					Scale:  1,
+				}).Do(ctx)
+			if err != nil {
+				return err
+			}
+			return nil
+		}),
+	}
 }

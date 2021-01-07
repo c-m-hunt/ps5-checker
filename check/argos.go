@@ -1,6 +1,7 @@
 package check
 
 import (
+	"context"
 	"reflect"
 
 	"github.com/chromedp/chromedp"
@@ -23,7 +24,8 @@ func (a *Argos) CheckStock() error {
 	a.CheckerInfo.LogCheck()
 	urls := []string{"https://www.argos.co.uk/product/8349024", "https://www.argos.co.uk/product/8349000"}
 
-	ctx, cancels := SetupBrowserContext(a.Options)
+	var ctx context.Context
+	cancels := SetupBrowserContext(a.Options, &ctx)
 	for _, c := range cancels {
 		defer c()
 	}
@@ -41,7 +43,7 @@ func (a *Argos) CheckStock() error {
 			return err
 		}
 		if navURL != outOfStockURL {
-			a.CheckerInfo.LogStockSeen(u)
+			a.CheckerInfo.LogStockSeen(a.GetName(), u, ctx)
 			return nil
 		}
 	}

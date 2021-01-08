@@ -4,13 +4,16 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"math"
+	"os"
 	"time"
 
 	"github.com/chromedp/cdproto/emulation"
 	"github.com/chromedp/cdproto/page"
 	"github.com/chromedp/chromedp"
+	"github.com/gen2brain/beeep"
+	"github.com/gregdel/pushover"
+	log "github.com/sirupsen/logrus"
 )
 
 type CheckerList []Checker
@@ -48,6 +51,14 @@ type CheckerInfo struct {
 
 type Options struct {
 	Headless bool
+}
+
+var pushoverApp *pushover.Pushover
+var pushoverRecipient *pushover.Recipient
+
+func init() {
+	pushoverApp = pushover.New(os.Getenv("PUSHOVER_TOKEN"))
+	pushoverRecipient = pushover.NewRecipient(os.Getenv("PUSHOVER_RECIPIENT"))
 }
 
 func NewOptions() Options {
@@ -98,6 +109,48 @@ func (c *CheckerInfo) LogStockSeen(name string, url string, ctx context.Context)
 	now := time.Now()
 	c.StockLastSeen = &now
 	c.StockURL = url
+}
+
+func RunStockCheck(c Checker) {
+	counter := 0
+GetStuckIn:
+	for {
+		log.Infof("Checking %v", c.GetName())
+		err := c.CheckStock()
+		if err != nil {
+			log.Error(err)
+			log.Error(fmt.Sprintf("Problem getting stock from %v", c.GetName()))
+		}
+		if c.GetInStock() {
+			msg := fmt.Sprintf("FOUND STOCK at %v", c.GetName())
+			log.Info(msg)
+			sendAlert(c)
+			beeep.Alert("Stock found", msg, "")
+			break GetStuckIn
+		} else {
+			log.Warn(fmt.Sprintf("No stock at %v", c.GetName()))
+		}
+		counter++
+		if counter%10 == 0 {
+			c.PrintStatus()
+		}
+		time.Sleep(10 * time.Second)
+	}
+}
+
+func sendAlert(c Checker) {
+	message := pushover.NewMessage(fmt.Sprintf("PS5 stock found at %v", c.GetName()))
+	message.Title = "PS5 Stock Found"
+	message.Priority = pushover.PriorityHigh
+	ci := c.GetCheckInfo()
+	message.URL = ci.StockURL
+	message.URLTitle = c.GetName()
+
+	_, err := pushoverApp.SendMessage(message, pushoverRecipient)
+	if err != nil {
+		log.Error("Error sending alert")
+		log.Error(err)
+	}
 }
 
 func fullScreenshot(quality int64, res *[]byte) chromedp.Tasks {

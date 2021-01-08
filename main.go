@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"sync"
@@ -37,10 +38,14 @@ func main() {
 	options.Headless = true
 	cb := check.CheckerBase{Options: options}
 
-	checkers = append(checkers, &check.Game{CheckerBase: cb})
-	checkers = append(checkers, &check.Argos{CheckerBase: cb})
-	checkers = append(checkers, &check.Smyths{CheckerBase: cb})
-	checkers = append(checkers, &check.Amazon{CheckerBase: cb})
+	var ctx context.Context
+	cancel := check.SetupBrowserContext(options, &ctx)
+	defer cancel()
+
+	checkers = append(checkers, &check.Game{CheckerBase: cb, Context: &ctx})
+	checkers = append(checkers, &check.Argos{CheckerBase: cb, Context: &ctx})
+	checkers = append(checkers, &check.Smyths{CheckerBase: cb, Context: &ctx})
+	checkers = append(checkers, &check.Amazon{CheckerBase: cb, Context: &ctx})
 
 	var wg sync.WaitGroup
 

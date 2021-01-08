@@ -4,12 +4,14 @@ import (
 	"context"
 	"reflect"
 	"strings"
+	"time"
 
 	"github.com/chromedp/chromedp"
 )
 
 type Smyths struct {
 	CheckerBase
+	Context *context.Context
 }
 
 func (c *Smyths) GetName() string {
@@ -25,18 +27,24 @@ func (s *Smyths) CheckStock() error {
 	s.CheckerInfo.LogCheck()
 	url := "https://www.smythstoys.com/uk/en-gb/video-games-and-tablets/playstation-5/playstation-5-consoles/playstation-5-console/p/191259"
 
-	var ctx context.Context
-	cancels := SetupBrowserContext(s.Options, &ctx)
-	for _, c := range cancels {
-		defer c()
-	}
+	ctx, cancelTab := chromedp.NewContext(*s.Context)
+	defer cancelTab()
+	ctx, cancelTO := context.WithTimeout(ctx, 20*time.Second)
+	defer cancelTO()
 
 	var stock string
 
-	err := chromedp.Run(ctx,
-		chromedp.Navigate(url),
-		chromedp.WaitEnabled(".cookieProcessed"),
-		chromedp.Click(".cookieProcessed"),
+	err := chromedp.Run(ctx, chromedp.Navigate(url))
+
+	if s.CheckerInfo.Checks == 1 {
+		err = chromedp.Run(ctx,
+			chromedp.WaitEnabled(".cookieProcessed"),
+			chromedp.Click(".cookieProcessed"),
+		)
+	}
+
+	err = chromedp.Run(ctx,
+
 		chromedp.Text(".resultStock", &stock, chromedp.NodeVisible),
 		chromedp.WaitVisible(".resultStock"),
 	)

@@ -56,19 +56,18 @@ func NewOptions() Options {
 	}
 }
 
-func SetupBrowserContext(o Options, ctx *context.Context) []func() {
+func SetupBrowserContext(o Options, ctx *context.Context) func() {
 	opts := append(chromedp.DefaultExecAllocatorOptions[:],
 		chromedp.Flag("headless", o.Headless),
 	)
-	cancels := []func(){}
-	ctxTimeout, cancel0 := context.WithTimeout(context.Background(), 20*time.Second)
-	cancels = append(cancels, cancel0)
-	allocCtx, cancel1 := chromedp.NewExecAllocator(ctxTimeout, opts...)
-	cancels = append(cancels, cancel1)
-	ctxNew, cancel2 := chromedp.NewContext(allocCtx)
-	cancels = append(cancels, cancel2)
+	//ctxTimeout, _ := context.WithTimeout(context.Background(), 20*time.Second)
+	allocCtx, _ := chromedp.NewExecAllocator(context.Background(), opts...)
+	ctxNew, cancel := chromedp.NewContext(allocCtx)
+	if err := chromedp.Run(ctxNew); err != nil {
+		panic(err)
+	}
 	*ctx = ctxNew
-	return cancels
+	return cancel
 }
 
 func (c CheckerInfo) PrintStatus(name string) {

@@ -3,6 +3,7 @@ package check
 import (
 	"context"
 	"reflect"
+	"time"
 
 	"github.com/chromedp/cdproto/cdp"
 	"github.com/chromedp/chromedp"
@@ -10,6 +11,7 @@ import (
 
 type Game struct {
 	CheckerBase
+	Context *context.Context
 }
 
 func (g *Game) GetName() string {
@@ -25,11 +27,10 @@ func (g *Game) CheckStock() error {
 	g.CheckerInfo.LogCheck()
 	url := "https://www.game.co.uk/playstation-5"
 
-	var ctx context.Context
-	cancels := SetupBrowserContext(g.Options, &ctx)
-	for _, c := range cancels {
-		defer c()
-	}
+	ctx, cancelTab := chromedp.NewContext(*g.Context)
+	defer cancelTab()
+	ctx, cancelTO := context.WithTimeout(ctx, 20*time.Second)
+	defer cancelTO()
 
 	var stockButtons []*cdp.Node
 	err := chromedp.Run(ctx,

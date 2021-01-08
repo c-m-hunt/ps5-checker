@@ -4,12 +4,14 @@ import (
 	"context"
 	"reflect"
 	"strings"
+	"time"
 
 	"github.com/chromedp/chromedp"
 )
 
 type Amazon struct {
 	CheckerBase
+	Context *context.Context
 }
 
 func (c *Amazon) GetName() string {
@@ -27,24 +29,36 @@ func (a *Amazon) CheckStock() error {
 		"https://www.amazon.co.uk/PlayStation-9395003-5-Console/dp/B08H97NYGP/ref=sr_1_1?dchild=1&keywords=playstation%2B5&qid=1609854382&sr=8-1&th=1",
 		"https://www.amazon.co.uk/PlayStation-9395003-5-Console/dp/B08H95Y452/ref=sr_1_1?dchild=1&keywords=playstation%2B5&qid=1609854382&sr=8-1&th=1"}
 
-	var ctx context.Context
-	cancels := SetupBrowserContext(a.Options, &ctx)
-	for _, c := range cancels {
-		defer c()
-	}
+	ctx, cancelTab := chromedp.NewContext(*a.Context)
+	defer cancelTab()
+	ctx, cancelTO := context.WithTimeout(ctx, 30*time.Second)
+	defer cancelTO()
 
 	var stock string
-	err := chromedp.Run(ctx,
-		chromedp.Navigate(urls[0]),
-		chromedp.Click("#sp-cc-accept", chromedp.NodeVisible),
-	)
-	if err != nil {
-		a.Errors++
-		return err
-	}
+
+	cookiesAccepted := false
 	for _, u := range urls {
 		err := chromedp.Run(ctx,
 			chromedp.Navigate(u),
+			chromedp.Text("#availability span", &stock),
+		)
+		if err != nil {
+			a.Errors++
+			return err
+		}
+
+		if cookiesAccepted == false && a.CheckerInfo.Checks == 1 {
+			err = chromedp.Run(ctx,
+				chromedp.Click("#sp-cc-accept", chromedp.NodeVisible),
+			)
+			if err != nil {
+				a.Errors++
+				return err
+			}
+			cookiesAccepted = true
+		}
+
+		err = chromedp.Run(ctx,
 			chromedp.Text("#availability span", &stock),
 		)
 		if err != nil {

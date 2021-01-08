@@ -3,12 +3,14 @@ package check
 import (
 	"context"
 	"reflect"
+	"time"
 
 	"github.com/chromedp/chromedp"
 )
 
 type Argos struct {
 	CheckerBase
+	Context *context.Context
 }
 
 func (g *Argos) GetName() string {
@@ -24,11 +26,10 @@ func (a *Argos) CheckStock() error {
 	a.CheckerInfo.LogCheck()
 	urls := []string{"https://www.argos.co.uk/product/8349024", "https://www.argos.co.uk/product/8349000"}
 
-	var ctx context.Context
-	cancels := SetupBrowserContext(a.Options, &ctx)
-	for _, c := range cancels {
-		defer c()
-	}
+	ctx, cancelTab := chromedp.NewContext(*a.Context)
+	defer cancelTab()
+	ctx, cancelTO := context.WithTimeout(ctx, 20*time.Second)
+	defer cancelTO()
 
 	outOfStockURL := "https://www.argos.co.uk/vp/oos/ps5.html"
 	for _, u := range urls {

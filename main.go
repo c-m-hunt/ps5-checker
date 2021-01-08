@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"os"
 	"sync"
 
 	"github.com/c-m-hunt/ps5-checker/check"
@@ -23,9 +24,17 @@ func init() {
 }
 
 func main() {
+	headless := true
+	args := os.Args[1:]
+	if len(args) == 1 {
+		if args[0] == "show" {
+			headless = false
+		}
+	}
+
 	checkers := check.CheckerList{}
 	options := check.NewOptions()
-	options.Headless = true
+	options.Headless = headless
 	cb := check.CheckerBase{Options: options}
 
 	var ctx context.Context

@@ -13,6 +13,7 @@ import (
 	"github.com/chromedp/chromedp"
 	"github.com/gen2brain/beeep"
 	"github.com/gregdel/pushover"
+	"github.com/joho/godotenv"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -57,6 +58,10 @@ var pushoverApp *pushover.Pushover
 var pushoverRecipient *pushover.Recipient
 
 func init() {
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
 	pushoverApp = pushover.New(os.Getenv("PUSHOVER_TOKEN"))
 	pushoverRecipient = pushover.NewRecipient(os.Getenv("PUSHOVER_RECIPIENT"))
 }
@@ -71,7 +76,6 @@ func SetupBrowserContext(o Options, ctx *context.Context) func() {
 	opts := append(chromedp.DefaultExecAllocatorOptions[:],
 		chromedp.Flag("headless", o.Headless),
 	)
-	//ctxTimeout, _ := context.WithTimeout(context.Background(), 20*time.Second)
 	allocCtx, _ := chromedp.NewExecAllocator(context.Background(), opts...)
 	ctxNew, cancel := chromedp.NewContext(allocCtx)
 	if err := chromedp.Run(ctxNew); err != nil {

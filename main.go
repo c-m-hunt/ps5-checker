@@ -6,7 +6,6 @@ import (
 	"sync"
 
 	"github.com/c-m-hunt/ps5-checker/check"
-	"github.com/joho/godotenv"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -16,11 +15,6 @@ func init() {
 		DisableTimestamp: false,
 		FullTimestamp:    true,
 	})
-
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Error loading .env file")
-	}
 }
 
 func main() {

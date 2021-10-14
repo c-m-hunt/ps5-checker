@@ -31,7 +31,6 @@ func (s *Smyths) CheckStock() error {
 	defer cancelTab()
 	ctx, cancelTO := context.WithTimeout(ctx, 20*time.Second)
 	defer cancelTO()
-
 	var stock string
 
 	err := chromedp.Run(ctx, chromedp.Navigate(url))

@@ -160,7 +160,7 @@ func sendAlert(c Checker) {
 func fullScreenshot(quality int64, res *[]byte) chromedp.Tasks {
 	return chromedp.Tasks{
 		chromedp.ActionFunc(func(ctx context.Context) error {
-			_, _, contentSize, err := page.GetLayoutMetrics().Do(ctx)
+			_, _, contentSize, _, _, _, err := page.GetLayoutMetrics().Do(ctx)
 			if err != nil {
 				return err
 			}
